@@ -31,7 +31,8 @@ contract TrxChain {
     uint256 public pool_cycle;
     uint256 public pool_balance;
     mapping(uint256 => mapping(address => uint256)) public pool_users_refs_deposits_sum;
-    mapping(uint8 => address) public pool_top; // 4 топовых участника в день - берется с накопленого в день пула
+    mapping(uint8 => address) public pool_top; // 5 топовых участника в день - берется с накопленого в день пула
+    mapping(uint8 => address) public permanent_top; // 5 постоянных участников - награда всегда
 
     uint256 public total_users = 1;
     uint256 public total_deposited;
@@ -74,9 +75,10 @@ contract TrxChain {
 
         // Ежедневный рейтинг лучших пулов 3% от ВСЕХ депозитов, отведенных в пуле, каждые 24 часа 10% пула распределяется среди 4 лучших спонсоров по объему.
         pool_bonuses.push(40);
-        pool_bonuses.push(30);
-        pool_bonuses.push(20);
-        pool_bonuses.push(10);
+        pool_bonuses.push(25);
+        pool_bonuses.push(15);
+        pool_bonuses.push(12);
+        pool_bonuses.push(8);
 
         cycles.push(1e11);
         cycles.push(3e11);
