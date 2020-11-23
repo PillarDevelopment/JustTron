@@ -89,7 +89,7 @@ contract TrxChain {
         pool_bonuses.push(1); // 10
 
 
-        cycles.push(5e10);
+        cycles.push(1e11);
         cycles.push(3e11);
         cycles.push(9e11);
         cycles.push(2e12);
@@ -135,7 +135,7 @@ contract TrxChain {
             require(users[_addr].payouts >= this.maxPayoutOf(users[_addr].deposit_amount), "Deposit already exists");
             require(_amount >= users[_addr].deposit_amount && _amount <= cycles[users[_addr].cycle > cycles.length - 1 ? cycles.length - 1 : users[_addr].cycle], "Bad amount");
         }
-        else require(_amount >= 1e8 && _amount <= cycles[0], "Bad amount");
+        else require(_amount >= 5e7 && _amount <= cycles[0], "Bad amount");
 
         users[_addr].payouts = 0;
         users[_addr].deposit_amount = _amount;
