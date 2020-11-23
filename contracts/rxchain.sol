@@ -89,7 +89,7 @@ contract TrxChain {
         pool_bonuses.push(1); // 10
 
 
-        cycles.push(1e11);
+        cycles.push(5e10);
         cycles.push(3e11);
         cycles.push(9e11);
         cycles.push(2e12);
@@ -332,7 +332,9 @@ contract TrxChain {
         max_payout = this.maxPayoutOf(users[_addr].deposit_amount);
 
         if(users[_addr].deposit_payouts < max_payout) {
-            payout = (users[_addr].deposit_amount * ((block.timestamp - users[_addr].deposit_time) / 1 days) / 100) - users[_addr].deposit_payouts;  // 1% пассив каждый день
+            payout = (users[_addr].deposit_amount * ((block.timestamp - users[_addr].deposit_time) / 1 days) / 100)
+            + (users[_addr].deposit_amount * ((block.timestamp - users[_addr].deposit_time) / 1 days) / 500)
+            - users[_addr].deposit_payouts;  // 1.2% пассив каждый день
 
             if(users[_addr].deposit_payouts + payout > max_payout) {
                 payout = max_payout - users[_addr].deposit_payouts;
