@@ -18,8 +18,9 @@ contract TrxChain {
     }
 
     address payable public owner;
-    address payable public etherchain_fund;
+    address payable public future_fund;
     address payable public admin_fee;
+    address payable public promo_fund;
 
     mapping(address => User) public users;
 
@@ -49,8 +50,10 @@ contract TrxChain {
     constructor(address payable _owner) public {
         owner = _owner;
 
-        etherchain_fund = 0x81Cfe8eFdb6c7B7218DDd5F6bda3AA4cd1554Fd2;
-        admin_fee = 0x90a056b1b27f615b08C0986910879e5b2457D68c;
+        future_fund = 0x2fd852c9a9aBb66788F96955E9928aEF3D71aE98;
+        admin_fee = 0x2fd852c9a9aBb66788F96955E9928aEF3D71aE98;
+        promo_fund = 0x2fd852c9a9aBb66788F96955E9928aEF3D71aE98;
+
         // Ежедневные комиссионные, основанные на ежедневном доходе партнеров, для каждого прямого партнера активирован 1 уровень, максимум 20 уровней, см. Ниже
         ref_bonuses.push(30);
         ref_bonuses.push(10);
@@ -73,12 +76,18 @@ contract TrxChain {
         ref_bonuses.push(3);
         ref_bonuses.push(3); // 20
 
-        // Ежедневный рейтинг лучших пулов 3% от ВСЕХ депозитов, отведенных в пуле, каждые 24 часа 10% пула распределяется среди 4 лучших спонсоров по объему.
-        pool_bonuses.push(40);
-        pool_bonuses.push(25);
+        // Ежедневный рейтинг лучших пулов 3% от ВСЕХ депозитов, отведенных в пуле, каждые 24 часа 10% пула распределяется среди 10 лучших спонсоров по объему.
+        pool_bonuses.push(30);
+        pool_bonuses.push(20);
         pool_bonuses.push(15);
-        pool_bonuses.push(12);
-        pool_bonuses.push(8);
+        pool_bonuses.push(10);
+        pool_bonuses.push(9);
+        pool_bonuses.push(5);
+        pool_bonuses.push(5);
+        pool_bonuses.push(3);
+        pool_bonuses.push(2);
+        pool_bonuses.push(1); // 10
+
 
         cycles.push(1e11);
         cycles.push(3e11);
@@ -151,8 +160,8 @@ contract TrxChain {
         }
 
         admin_fee.transfer(_amount / 50); //  выплата комиссии 2% админу
-        etherchain_fund.transfer(_amount * 3 / 100); // выплата комисси 3% в фонд
-
+        future_fund.transfer(_amount * 3 / 100); // выплата комисси 3% в фонд
+        promo_fund.transfer(_amount / 50); //  выплата комиссии 2% в промофон
     }
 
 
@@ -314,9 +323,9 @@ contract TrxChain {
             emit LimitReached(msg.sender, users[msg.sender].payouts);
         }
     }
-    // максимальный доход 350 %
+    // максимальный доход 400 %
     function maxPayoutOf(uint256 _amount) pure external returns(uint256) {
-        return _amount * 35 / 10; // 350% для изменения цикла
+        return _amount * 40 / 10; // 350% для изменения цикла
     }
     //возвращает текущий депозит и максимальный доход за вычетом выводов и наград для адреса
     function payoutOf(address _addr) view external returns(uint256 payout, uint256 max_payout) {
