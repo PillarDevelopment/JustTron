@@ -1,1 +1,3 @@
-# 2.Tronchain_new_wave
+# 2.JustTron
+
+[Actual address](https://shasta.tronscan.org/#/contract/TFMGoFB2FPV6F4KTzjXUziJszZNtSiEJYC/code)
