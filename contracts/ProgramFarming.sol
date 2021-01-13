@@ -158,40 +158,7 @@ library SafeMath {
     }
 }
 
-/*
- * @dev Provides information about the current execution context, including the
- * sender of the transaction and its data. While these are generally available
- * via msg.sender and msg.data, they should not be accessed in such a direct
- * manner, since when dealing with GSN meta-transactions the account sending and
- * paying for execution may not be the actual sender (as far as an application
- * is concerned).
- *
- * This contract is only required for intermediate, library-like contracts.
- */
-abstract contract Context {
-    function _msgSender() internal view virtual returns (address payable) {
-        return msg.sender;
-    }
-
-    function _msgData() internal view virtual returns (bytes memory) {
-        this; // silence state mutability warning without generating bytecode - see https://github.com/ethereum/solidity/issues/2691
-        return msg.data;
-    }
-}
-
-/**
- * @dev Contract module which provides a basic access control mechanism, where
- * there is an account (an owner) that can be granted exclusive access to
- * specific functions.
- *
- * By default, the owner account will be the one that deploys the contract. This
- * can later be changed with {transferOwnership}.
- *
- * This module is used through inheritance. It will make available the modifier
- * `onlyOwner`, which can be applied to your functions to restrict their use to
- * the owner.
- */
-contract Ownable is Context {
+contract Ownable {
     address private _owner;
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
@@ -200,7 +167,7 @@ contract Ownable is Context {
      * @dev Initializes the contract setting the deployer as the initial owner.
      */
     constructor () internal {
-        address msgSender = _msgSender();
+        address msgSender = msg.sender;
         _owner = msgSender;
         emit OwnershipTransferred(address(0), msgSender);
     }
@@ -216,27 +183,29 @@ contract Ownable is Context {
      * @dev Throws if called by any account other than the owner.
      */
     modifier onlyOwner() {
-        require(_owner == _msgSender(), "Ownable: caller is not the owner");
+        require(isOwner(), "Ownable: caller is not the owner");
         _;
     }
 
     /**
-     * @dev Leaves the contract without owner. It will not be possible to call
-     * `onlyOwner` functions anymore. Can only be called by the current owner.
-     *
-     * NOTE: Renouncing ownership will leave the contract without an owner,
-     * thereby removing any functionality that is only available to the owner.
+     * @dev Returns true if the caller is the current owner.
      */
-    function renounceOwnership() public virtual onlyOwner {
-        emit OwnershipTransferred(_owner, address(0));
-        _owner = address(0);
+    function isOwner() public view returns (bool) {
+        return msg.sender == _owner;
     }
 
     /**
      * @dev Transfers ownership of the contract to a new account (`newOwner`).
      * Can only be called by the current owner.
      */
-    function transferOwnership(address newOwner) public virtual onlyOwner {
+    function transferOwnership(address newOwner) public onlyOwner {
+        _transferOwnership(newOwner);
+    }
+
+    /**
+     * @dev Transfers ownership of the contract to a new account (`newOwner`).
+     */
+    function _transferOwnership(address newOwner) internal {
         require(newOwner != address(0), "Ownable: new owner is the zero address");
         emit OwnershipTransferred(_owner, newOwner);
         _owner = newOwner;
@@ -301,20 +270,19 @@ contract ProgramFarming is Ownable {
 
 
     // View function to see pending ProgramTokens on frontend.
-    function pendingProgram(address _user) external view returns (uint256) {
+    function pendingProgram(address _user) external returns (uint256) {
         UserInfo storage user = userInfo[_user];
-        uint256 accProgramPerShare = accProgramPerShare;
-        uint256 trxSupply = this.balance;
+        uint256 programPerShare = accProgramPerShare;
+        uint256 trxSupply = address(this).balance;
 
         if (block.number > lastRewardBlock && trxSupply != 0) {
-            uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
-            uint256 programReward = (multiplier.mul(1e18)).mul(allocPoint).div(totalAllocPoint);
-            accProgramPerShare = accProgramPerShare.add(programReward.mul(1e12).div(trxSupply));
+             uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
+              uint256 programReward = (multiplier.mul(1e18)).mul(allocPoint).div(totalAllocPoint);
+              accProgramPerShare = programPerShare.add(programReward.mul(1e12).div(trxSupply));
         }
 
-        return user.amount.mul(accProgramPerShare).div(1e12).sub(user.rewardDebt);
+        return user.amount.mul(programPerShare).div(1e12).sub(user.rewardDebt);
     }
-
 
 
     // Update reward variables of the given pool to be up-to-date.
@@ -322,15 +290,14 @@ contract ProgramFarming is Ownable {
         if (block.number <= lastRewardBlock) {
             return;
         }
-        uint256 trxSupply = this.balance;
+        uint256 trxSupply = address(this).balance;
         if (trxSupply == 0) {
-            lastRewardBlock = block.number;
-            return;
+              lastRewardBlock = block.number;
+              return;
         }
 
         uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
         uint256 programReward = multiplier.mul(1e18).mul(allocPoint).div(totalAllocPoint);
-        trcToken.transfer(address(this), programReward);
         accProgramPerShare = accProgramPerShare.add(programReward.mul(1e12).div(trxSupply));
         lastRewardBlock = block.number;
     }
@@ -343,7 +310,7 @@ contract ProgramFarming is Ownable {
         updatePool();
         if (user.amount > 0) {
             uint256 pending = user.amount.mul(accProgramPerShare).div(1e12).sub(user.rewardDebt);
-           safeProgramTransfer(msg.sender, pending); // transfer Program
+            safeProgramTransfer(msg.sender, pending); // transfer Program
         }
         user.amount = user.amount.add(_amount);
         user.rewardDebt = user.amount.mul(accProgramPerShare).div(1e12);
@@ -376,14 +343,13 @@ contract ProgramFarming is Ownable {
 
 
     // Safe ProgramTokens transfer function, just in case if rounding error causes pool to not have enough ProgramTokens.
-    function safeProgramTransfer(address _to, uint256 _amount) internal {
-        uint256 programBalance = this.tokenBalance(programID);
-
+     function safeProgramTransfer(address payable _to, uint256 _amount) internal {
+        uint256 programBalance = address(this).tokenBalance(programID);
         if (_amount > programBalance) {
             _to.transferToken(programBalance, programID);
         } else {
             _to.transferToken(_amount, programID);
         }
-    }
+     }
 
 }
