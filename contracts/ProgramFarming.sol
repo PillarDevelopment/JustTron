@@ -228,8 +228,33 @@ contract ProgramFarming is Ownable {
         uint256 rewardDebt; // Reward debt. See explanation below.
     }
 
+..По стейкингу GRM
+расклад по эмиссии токена на 10 лет
+
+    //1-ый год выходит по 50000  токенов в день = 18,250,000
+    //2-ой год = 25000 в день = 9,125,000
+    //3-ий год = 12500 в день = 4,562,500
+    //4-10 ый год = 10983 токена в день = 28,062,500
+    //ИТОГО 60 млн токенов выйдет людьми (фарминг) + 20 пресейл, 10 затраты, 10 команда
+
+
+
+    // The block number when MILK mining starts.
+    uint256 public startFirstPhaseBlock; //
+
+    // The block number when MILK mining starts.
+    uint256 public startSecondPhaseBlock;
+
+    // The block number when MILK mining starts.
+    uint256 public startThirdPhaseBlock;
+
+    // Block number when bonus MILK period ends.
+    uint256 public bonusEndBlock;
+
     uint256 allocPoint = 100; //How many allocation points assigned to this pool. ProgramToken to distribute per block.
+
     uint256 lastRewardBlock;  // Last block number that ProgramToken distribution occurs.
+
     uint256 accProgramPerShare;  // Accumulated ProgramToken per share, times 1e12. See below.
 
     // The block number when ProgramToken mining starts.
@@ -276,11 +301,10 @@ contract ProgramFarming is Ownable {
         uint256 trxSupply = address(this).balance;
 
         if (block.number > lastRewardBlock && trxSupply != 0) {
-             uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
-              uint256 programReward = (multiplier.mul(1e18)).mul(allocPoint).div(totalAllocPoint);
-              accProgramPerShare = programPerShare.add(programReward.mul(1e12).div(trxSupply));
+            uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
+            uint256 programReward = (multiplier.mul(1e6)).mul(allocPoint).div(totalAllocPoint);
+            programPerShare = programPerShare.add(programReward.mul(1e12).div(trxSupply));
         }
-
         return user.amount.mul(programPerShare).div(1e12).sub(user.rewardDebt);
     }
 
@@ -297,7 +321,7 @@ contract ProgramFarming is Ownable {
         }
 
         uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
-        uint256 programReward = multiplier.mul(1e18).mul(allocPoint).div(totalAllocPoint);
+        uint256 programReward = multiplier.mul(1e6).mul(allocPoint).div(totalAllocPoint);
         accProgramPerShare = accProgramPerShare.add(programReward.mul(1e12).div(trxSupply));
         lastRewardBlock = block.number;
     }
