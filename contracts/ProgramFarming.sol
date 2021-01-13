@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.5.12;
+pragma solidity ^0.5.4;
 
 /**
  * @dev Wrappers over Solidity's arithmetic operations with added overflow
@@ -227,29 +227,23 @@ contract ProgramFarming is Ownable {
         uint256 amount;     // How many TRX the user has provided.
         uint256 rewardDebt; // Reward debt. See explanation below.
     }
+    // 28,800 - блоков
+    //1-ый год выходит по 50000  токенов в день = 18,250,000   // 57600 - 21,042,000
+    //2-ой год = 25000 в день = 9,125,000 // 28,800 -  - 10,512,00
+    //3-ий год = 12500 в день = 4,562,500 - // 5,256,000
+    //4-10 ый год = 10983 токена в день = 28,062,500 // 23,190,000 - 2684 дней - 77299200 блоков
 
-..По стейкингу GRM
-расклад по эмиссии токена на 10 лет
-
-    //1-ый год выходит по 50000  токенов в день = 18,250,000
-    //2-ой год = 25000 в день = 9,125,000
-    //3-ий год = 12500 в день = 4,562,500
-    //4-10 ый год = 10983 токена в день = 28,062,500
-    //ИТОГО 60 млн токенов выйдет людьми (фарминг) + 20 пресейл, 10 затраты, 10 команда
-
-
-
-    // The block number when MILK mining starts.
+    // The block number when Program farming starts.
     uint256 public startFirstPhaseBlock; //
 
-    // The block number when MILK mining starts.
     uint256 public startSecondPhaseBlock;
 
-    // The block number when MILK mining starts.
     uint256 public startThirdPhaseBlock;
 
-    // Block number when bonus MILK period ends.
+    uint256 public startFourthPhaseBlock;
+
     uint256 public bonusEndBlock;
+
 
     uint256 allocPoint = 100; //How many allocation points assigned to this pool. ProgramToken to distribute per block.
 
@@ -259,6 +253,16 @@ contract ProgramFarming is Ownable {
 
     // The block number when ProgramToken mining starts.
     uint256 public startBlock;
+
+    // Bonus multiplier for early milk makers.
+    uint256 public constant BONUS_MULTIPLIER_1 = 20; // first 10,512,000 blocks
+
+    uint256 public constant BONUS_MULTIPLIER_2 = 10; // next 10,512,000 blocks
+
+    uint256 public constant BONUS_MULTIPLIER_3 = 5; // next 10,512,000 blocks
+
+    uint256 public constant BONUS_MULTIPLIER_3 = 5; // last 73,584,000 blocks
+
 
     uint256 internal programPerBlock = 1000000; // 1 PRGRM
 
@@ -273,7 +277,11 @@ contract ProgramFarming is Ownable {
     event EmergencyWithdraw(address indexed user, uint256 amount);
 
     constructor(uint256 _startBlock) public {
-        startBlock = _startBlock;
+        startBlock = _startBlock; // start 1 year
+        startSecondPhaseBlock = startBlock.add(10512000); // start 2 year
+        startThirdPhaseBlock = startSecondPhaseBlock.add(10512000); // start 3 year
+        startFourthPhaseBlock = startThirdPhaseBlock.add(10512000);// start 4 year
+        bonusEndBlock = startFourthPhaseBlock.add(73584000);    // end 10 year
     }
 
 
@@ -295,7 +303,7 @@ contract ProgramFarming is Ownable {
 
 
     // View function to see pending ProgramTokens on frontend.
-    function pendingProgram(address _user) external returns (uint256) {
+    function pendingProgram(address _user) external view returns (uint256) {
         UserInfo storage user = userInfo[_user];
         uint256 programPerShare = accProgramPerShare;
         uint256 trxSupply = address(this).balance;
