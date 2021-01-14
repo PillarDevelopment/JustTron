@@ -227,50 +227,30 @@ contract ProgramFarming is Ownable {
         uint256 amount;     // How many TRX the user has provided.
         uint256 rewardDebt; // Reward debt. See explanation below.
     }
-    // 28,800 - блоков
-    //1-ый год выходит по 50000  токенов в день = 18,250,000   // 57600 - 21,042,000
-    //2-ой год = 25000 в день = 9,125,000 // 28,800 -  - 10,512,00
-    //3-ий год = 12500 в день = 4,562,500 - // 5,256,000
-    //4-10 ый год = 10983 токена в день = 28,062,500 // 23,190,000 - 2684 дней - 77299200 блоков
 
     // The block number when Program farming starts.
     uint256 public startFirstPhaseBlock; //
-
     uint256 public startSecondPhaseBlock;
-
     uint256 public startThirdPhaseBlock;
-
     uint256 public startFourthPhaseBlock;
-
     uint256 public bonusEndBlock;
 
 
-    uint256 allocPoint = 100; //How many allocation points assigned to this pool. ProgramToken to distribute per block.
-
-    uint256 lastRewardBlock;  // Last block number that ProgramToken distribution occurs.
-
-    uint256 accProgramPerShare;  // Accumulated ProgramToken per share, times 1e12. See below.
-
-    // The block number when ProgramToken mining starts.
     uint256 public startBlock;
-
-    // Bonus multiplier for early milk makers.
-    uint256 public constant BONUS_MULTIPLIER_1 = 20; // first 10,512,000 blocks
-
-    uint256 public constant BONUS_MULTIPLIER_2 = 10; // next 10,512,000 blocks
-
-    uint256 public constant BONUS_MULTIPLIER_3 = 5; // next 10,512,000 blocks
-
-    uint256 public constant BONUS_MULTIPLIER_3 = 5; // last 73,584,000 blocks
+    uint256 public lastRewardBlock;
+    uint256 public accProgramPerShare;  // Accumulated ProgramToken per share, times 1e12. See below.
 
 
-    uint256 internal programPerBlock = 1000000; // 1 PRGRM
+    // Bonus multiplier for early prg makers.
+    uint256 public constant BONUS_MULTIPLIER_1 = 20; // first 10,512,000 blocks - 2,0`Program in Block
+    uint256 public constant BONUS_MULTIPLIER_2 = 10; // next  10,512,000 blocks - 1,0 Program in Block
+    uint256 public constant BONUS_MULTIPLIER_3 = 5; //  next  10,512,000 blocks - 0,5 Program in BLock
+    uint256 public constant BONUS_MULTIPLIER_4 = 3; //  last  77,360,000 blocks - 0,3 Program in Block
+
+    uint256 internal programPerBlock = 100000; // 0,1 PRGRM
 
     // Info of each user that stakes TRX.
     mapping (address => UserInfo) public userInfo;
-
-    // Total allocation points. Must be the sum of all allocation points in all pools.
-    uint256 public totalAllocPoint = 100;
 
     event Deposit(address indexed user, uint256 amount);
     event Withdraw(address indexed user, uint256 amount);
@@ -281,7 +261,7 @@ contract ProgramFarming is Ownable {
         startSecondPhaseBlock = startBlock.add(10512000); // start 2 year
         startThirdPhaseBlock = startSecondPhaseBlock.add(10512000); // start 3 year
         startFourthPhaseBlock = startThirdPhaseBlock.add(10512000);// start 4 year
-        bonusEndBlock = startFourthPhaseBlock.add(73584000);    // end 10 year
+        bonusEndBlock = startFourthPhaseBlock.add(77360000);    // end 10 year
     }
 
 
@@ -292,7 +272,27 @@ contract ProgramFarming is Ownable {
 
     // Return reward multiplier over the given _from to _to block.
     function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
-        return _to.sub(_from).mul(programPerBlock);
+        if (_to <= startFirstPhaseBlock) { // 0
+            return  _to.sub(_from); // x1
+        }
+        else if (_to <= startSecondPhaseBlock) { // + 10,512,000 blocks
+            return _to.sub(_from).mul(BONUS_MULTIPLIER_1); // x20
+        }
+        else if (_to <= startThirdPhaseBlock) { // + 10,512,000 blocks
+            return _to.sub(_from).mul(BONUS_MULTIPLIER_2); //x10
+        }
+        else if (_to <= startFourthPhaseBlock) { // + 10,512,000 blocks
+            return _to.sub(_from).mul(BONUS_MULTIPLIER_3); // x5
+        }
+        else if (_to <= bonusEndBlock) { // + 77,360,000 blocks
+            return _to.sub(_from).mul(BONUS_MULTIPLIER_4); // x3
+        }
+        else if (_from >= bonusEndBlock) {
+            return _to.sub(_from);
+        }
+        else {
+            return bonusEndBlock.sub(_from).mul(BONUS_MULTIPLIER_1).add(_to.sub(bonusEndBlock));
+        }
     }
 
 
@@ -310,7 +310,7 @@ contract ProgramFarming is Ownable {
 
         if (block.number > lastRewardBlock && trxSupply != 0) {
             uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
-            uint256 programReward = (multiplier.mul(1e6)).mul(allocPoint).div(totalAllocPoint);
+            uint256 programReward = (multiplier.mul(1e5));
             programPerShare = programPerShare.add(programReward.mul(1e12).div(trxSupply));
         }
         return user.amount.mul(programPerShare).div(1e12).sub(user.rewardDebt);
@@ -329,7 +329,7 @@ contract ProgramFarming is Ownable {
         }
 
         uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
-        uint256 programReward = multiplier.mul(1e6).mul(allocPoint).div(totalAllocPoint);
+        uint256 programReward = multiplier.mul(1e5);
         accProgramPerShare = accProgramPerShare.add(programReward.mul(1e12).div(trxSupply));
         lastRewardBlock = block.number;
     }
