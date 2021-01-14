@@ -232,7 +232,7 @@ contract ProgramFarming is Ownable {
     uint256[] public phases;
     uint256 public lastRewardBlock;
 
-    uint256 internal accProgramPerShare;  // Accumulated ProgramToken per share, times 1e12. See below.
+    uint256 internal accProgramPerShare;  // Accumulated ProgramToken per share, times 1e11. See below.
 
 
     // Bonus multiplier for early prg makers.
@@ -305,9 +305,9 @@ contract ProgramFarming is Ownable {
         if (block.number > lastRewardBlock && trxSupply != 0) {
             uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
             uint256 programReward = (multiplier.mul(1e5));
-            programPerShare = programPerShare.add(programReward.mul(1e12).div(trxSupply));
+            programPerShare = programPerShare.add(programReward.mul(1e11).div(trxSupply));
         }
-        return user.amount.mul(programPerShare).div(1e12).sub(user.rewardDebt);
+        return user.amount.mul(programPerShare).div(1e11).sub(user.rewardDebt);
     }
 
 
@@ -324,7 +324,7 @@ contract ProgramFarming is Ownable {
 
         uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
         uint256 programReward = multiplier.mul(1e5);
-        accProgramPerShare = accProgramPerShare.add(programReward.mul(1e12).div(trxSupply));
+        accProgramPerShare = accProgramPerShare.add(programReward.mul(1e11).div(trxSupply));
         lastRewardBlock = block.number;
     }
 
@@ -335,11 +335,11 @@ contract ProgramFarming is Ownable {
         UserInfo storage user = userInfo[msg.sender];
         updatePool();
         if (user.amount > 0) {
-            uint256 pending = user.amount.mul(accProgramPerShare).div(1e12).sub(user.rewardDebt);
+            uint256 pending = user.amount.mul(accProgramPerShare).div(1e11).sub(user.rewardDebt);
             safeProgramTransfer(msg.sender, pending); // transfer Program
         }
         user.amount = user.amount.add(_amount);
-        user.rewardDebt = user.amount.mul(accProgramPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(accProgramPerShare).div(1e11);
         emit Deposit(msg.sender, _amount);
     }
 
@@ -349,10 +349,10 @@ contract ProgramFarming is Ownable {
         UserInfo storage user = userInfo[msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
         updatePool();
-        uint256 pending = user.amount.mul(accProgramPerShare).div(1e12).sub(user.rewardDebt);
+        uint256 pending = user.amount.mul(accProgramPerShare).div(1e11).sub(user.rewardDebt);
         safeProgramTransfer(msg.sender, pending);
         user.amount = user.amount.sub(_amount);
-        user.rewardDebt = user.amount.mul(accProgramPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(accProgramPerShare).div(1e11);
         msg.sender.transfer(_amount);
         emit Withdraw(msg.sender, _amount);
     }
