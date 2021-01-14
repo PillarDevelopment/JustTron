@@ -236,7 +236,6 @@ contract ProgramFarming is Ownable {
     uint256 public bonusEndBlock;
 
 
-    uint256 public startBlock;
     uint256 public lastRewardBlock;
     uint256 public accProgramPerShare;  // Accumulated ProgramToken per share, times 1e12. See below.
 
@@ -257,8 +256,8 @@ contract ProgramFarming is Ownable {
     event EmergencyWithdraw(address indexed user, uint256 amount);
 
     constructor(uint256 _startBlock) public {
-        startBlock = _startBlock; // start 1 year
-        startSecondPhaseBlock = startBlock.add(10512000); // start 2 year
+        startFirstPhaseBlock = _startBlock; // start 1 year
+        startSecondPhaseBlock = startFirstPhaseBlock.add(10512000); // start 2 year
         startThirdPhaseBlock = startSecondPhaseBlock.add(10512000); // start 3 year
         startFourthPhaseBlock = startThirdPhaseBlock.add(10512000);// start 4 year
         bonusEndBlock = startFourthPhaseBlock.add(77360000);    // end 10 year
