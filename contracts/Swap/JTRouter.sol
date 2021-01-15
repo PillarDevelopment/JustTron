@@ -1,4 +1,4 @@
-pragma solidity >0.5.14;
+pragma solidity 0.5.14;
 
 interface IJTTRC20Factory {
     event PairCreated(address indexed token0, address indexed token1, address pair, uint);
