@@ -1355,7 +1355,7 @@ contract JustswapExchange is TRC20,ReentrancyGuard {
 
 }
 
-contract JustSwapFactory {
+contract JustSwapFactory{
 
     address public exchangeTemplate;
 
