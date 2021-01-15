@@ -158,6 +158,18 @@ library SafeMath {
     }
 }
 
+/**
+ * @dev Contract module which provides a basic access control mechanism, where
+ * there is an account (an owner) that can be granted exclusive access to
+ * specific functions.
+ *
+ * By default, the owner account will be the one that deploys the contract. This
+ * can later be changed with {transferOwnership}.
+ *
+ * This module is used through inheritance. It will make available the modifier
+ * `onlyOwner`, which can be applied to your functions to restrict their use to
+ * the owner.
+ */
 contract Ownable {
     address private _owner;
 
@@ -213,15 +225,32 @@ contract Ownable {
 }
 
 /**
+// Special interface for calling TRC10 methods
+// see more: https://developers.tron.network/docs/trc10-transfer-in-smart-contracts-2
+// Have fun reading it. Hopefully it's bug-free. God bless.
+*/
+contract TRC10Integrator {
+    trcToken private programID = 1000495;
+
+    function _safeTRC10Transfer(address payable _to, uint256 _amount) internal {
+        uint256 programBalance = address(this).tokenBalance(programID);
+
+        if (_amount > programBalance) {
+            _to.transferToken(programBalance, programID);
+        } else {
+            _to.transferToken(_amount, programID);
+        }
+    }
+}
+
+/**
 // Note that it's ownable and the owner wields tremendous power. The ownership
 // distributed and the community can show to govern itself.
 //
 // Have fun reading it. Hopefully it's bug-free. God bless.
 */
-contract ProgramFarming is Ownable {
+contract ProgramFarming is Ownable, TRC10Integrator {
     using SafeMath for uint256;
-
-    trcToken private programID = 1000495;
 
     struct UserInfo {
         uint256 amount;     // How many TRX the user has provided.
@@ -233,7 +262,6 @@ contract ProgramFarming is Ownable {
     uint256 public lastRewardBlock;
 
     uint256 internal accProgramPerShare;  // Accumulated ProgramToken per share, times 1e11. See below.
-
 
     // Bonus multiplier for early prg makers.
     uint256 internal constant BONUS_MULTIPLIER_1 = 20; // first 10,512,000 blocks - 2,0`Program in Block
@@ -336,7 +364,7 @@ contract ProgramFarming is Ownable {
         updatePool();
         if (user.amount > 0) {
             uint256 pending = user.amount.mul(accProgramPerShare).div(1e11).sub(user.rewardDebt);
-            safeProgramTransfer(msg.sender, pending); // transfer Program
+            _safeProgramTransfer(msg.sender, pending); // transfer Program
         }
         user.amount = user.amount.add(_amount);
         user.rewardDebt = user.amount.mul(accProgramPerShare).div(1e11);
@@ -350,7 +378,7 @@ contract ProgramFarming is Ownable {
         require(user.amount >= _amount, "withdraw: not good");
         updatePool();
         uint256 pending = user.amount.mul(accProgramPerShare).div(1e11).sub(user.rewardDebt);
-        safeProgramTransfer(msg.sender, pending);
+        _safeProgramTransfer(msg.sender, pending);
         user.amount = user.amount.sub(_amount);
         user.rewardDebt = user.amount.mul(accProgramPerShare).div(1e11);
         msg.sender.transfer(_amount);
@@ -369,13 +397,7 @@ contract ProgramFarming is Ownable {
 
 
     // Safe ProgramTokens transfer function, just in case if rounding error causes pool to not have enough ProgramTokens.
-     function safeProgramTransfer(address payable _to, uint256 _amount) internal {
-        uint256 programBalance = address(this).tokenBalance(programID);
-        if (_amount > programBalance) {
-            _to.transferToken(programBalance, programID);
-        } else {
-            _to.transferToken(_amount, programID);
-        }
+     function _safeProgramTransfer(address payable _to, uint256 _amount) internal {
+        _safeTRC10Transfer(_to, _amount);
      }
-
 }
