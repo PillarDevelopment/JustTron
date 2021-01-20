@@ -1,0 +1,63 @@
+module.exports = {
+  mainnet: [
+    { address: "TMwFHYXLJaRUPeW6421aqXL4ZEzPRFGkGT",
+      code: "USDJ"
+    },
+    { address: "TCFLL5dx5ZJdKnWuesXxi1VPwjLVmWZZy9",
+      code: "JST"
+    },
+    {
+      address: "TBhxyECmAg3uCqqmEHQvGJbrgj9cn1yMZ1",
+      code: "TEWKEN",
+      decimals: 6,
+    },
+    { address: "TNp9BX9NMjsmWPZugw13VisP1oVJT2pMDv",
+      code: "DCD",
+      decimals: 6 },
+    { address: "TPpLkxGeKragRC7qpiQjjtNmf6shXWi8i9",
+      code: "FRAG" },
+    {
+      address: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+      code: "USDT",
+      decimals: 6,
+    },
+    { address: "TMJWuBDvwvcm6QUWXDaC6GqTyq3FgEmWEt", code: "CNS", decimals: 8 },
+    {
+      address: "TNo59Khpq46FGf4sD7XSWYFNfYfbc8CqNK",
+      code: "BNKR",
+      decimals: 6,
+    },
+    {
+      address: "TQfpdspC8hKxNzWPMzjq9aEQyjuUwa3VvQ",
+      code: "sETH",
+      decimals: 18,
+    },
+    {
+      address: "TFouHv3jFqMbHuz1Y2bXyShTywNrofauSA",
+      code: "MIMA",
+      decimals: 6,
+    },
+    {
+      address: "TJxU6TzuixbCagS3cXBpXHJGuqBY3awkJv",
+      code: "CSX",
+      decimals: 6,
+    },
+  ],
+  shasta:[
+    {
+      address: "TXDTbMyeR6NeqZEGCJ5qRZDwCs4NhbPyAy",
+      code: "OKS",
+      decimals: 18,
+    },
+    {
+      address: "TBFdp2jfMccwneRnbcobCa6txrxo1a1tvi",
+      code: "sUSD",
+      decimals: 18,
+    },
+    {
+      address: "TNo59Khpq46FGf4sD7XSWYFNfYfbc8CqNK",
+      code: "sTRX",
+      decimals: 18,
+    },
+  ]
+};
