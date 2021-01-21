@@ -1,6 +1,6 @@
 pragma solidity ^0.5.0;
 
-interface IUniswapFactory {
+interface IJustSwapFactory {
   event NewExchange(address indexed token, address indexed exchange);
 
   function initializeFactory(address template) external;

@@ -1,10 +1,10 @@
 pragma solidity ^0.5.0;
 
-import "./UniswapExchange.sol";
-import "./IUniswapExchange.sol";
+import "./JustSwapExchange.sol";
+import "./IJustSwapExchange.sol";
 
 
-contract UniswapFactory {
+contract JustSwapFactory {
 
   /***********************************|
   |       Events And Variables        |
@@ -32,8 +32,8 @@ contract UniswapFactory {
     require(token != address(0));
     require(exchangeTemplate != address(0));
     require(token_to_exchange[token] == address(0));
-    UniswapExchange exchange = new UniswapExchange();
-    exchange.setup(token, address(this));
+    JustSwapExchange exchange = new JustSwapExchange();
+    //exchange.setup(token, address(this));
     token_to_exchange[token] = address(exchange);
     exchange_to_token[address(exchange)] = token;
     uint256 token_id = tokenCount + 1;
@@ -47,7 +47,7 @@ contract UniswapFactory {
   function registerExchange(address payable exchange, address token) public returns (address) {
     require(token != address(0));
     require(token_to_exchange[token] == address(0));
-    require(UniswapExchange(exchange).factoryAddress() == address(this), "exchange.factory does not match");
+    require(JustSwapExchange(exchange).factoryAddress() == address(this), "exchange.factory does not match");
     token_to_exchange[token] = address(exchange);
     exchange_to_token[address(exchange)] = token;
     uint256 token_id = tokenCount + 1;

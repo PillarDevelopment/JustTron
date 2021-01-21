@@ -1,22 +1,22 @@
 pragma solidity ^0.5.0;
-import "./ERC20.sol";
-import "./IERC20.sol";
-import "./IUniswapFactory.sol";
-import "./IUniswapExchange.sol";
+import "./TRC20.sol";
+import "./ITRC20.sol";
+import "./IJustSwapFactory.sol";
+import "./IJustSwapExchange.sol";
 
 
-contract UniswapExchange is ERC20 {
+contract JustSwapExchange is TRC20 {
 
   /***********************************|
   |        Variables && Events        |
   |__________________________________*/
 
   // Variables
-  bytes32 public name;         // Uniswap V1
-  bytes32 public symbol;       // UNI-V1
+  bytes32 public name;         //
+  bytes32 public symbol;       // JSW-1
   uint256 public decimals;     // 18
-  IERC20 token;                // address of the ERC20 token traded on this contract
-  IUniswapFactory factory;     // interface for the factory that created this contract
+  ITRC20 token;                // address of the TRC20 token traded on this contract
+  IJustSwapFactory factory;     // interface for the factory that created this contract
 
   // Events
   event TokenPurchase(address indexed buyer, uint256 indexed eth_sold, uint256 indexed tokens_bought);
@@ -38,8 +38,8 @@ contract UniswapExchange is ERC20 {
       address(factory) == address(0) && address(token) == address(0) && token_addr != address(0),
       "INVALID_ADDRESS"
     );
-    factory = IUniswapFactory(factory_addr);
-    token = IERC20(token_addr);
+    factory = IJustSwapFactory(factory_addr);
+    token = ITRC20(token_addr);
     name = 0x556e697377617020563100000000000000000000000000000000000000000000;
     symbol = 0x554e492d56310000000000000000000000000000000000000000000000000000;
     decimals = 18;
@@ -52,7 +52,7 @@ contract UniswapExchange is ERC20 {
 
 
   /**
-   * @notice Convert ETH to Tokens.
+   * @notice Convert TRX to Tokens.
    * @dev User specifies exact input (msg.value).
    * @dev User cannot specify minimum output or deadline.
    */
@@ -61,11 +61,11 @@ contract UniswapExchange is ERC20 {
   }
 
  /**
-   * @dev Pricing function for converting between ETH && Tokens.
-   * @param input_amount Amount of ETH or Tokens being sold.
-   * @param input_reserve Amount of ETH or Tokens (input type) in exchange reserves.
-   * @param output_reserve Amount of ETH or Tokens (output type) in exchange reserves.
-   * @return Amount of ETH or Tokens bought.
+   * @dev Pricing function for converting between TRX && Tokens.
+   * @param input_amount Amount of TRX or Tokens being sold.
+   * @param input_reserve Amount of TRX or Tokens (input type) in exchange reserves.
+   * @param output_reserve Amount of TRX or Tokens (output type) in exchange reserves.
+   * @return Amount of TRX or Tokens bought.
    */
   function getInputPrice(uint256 input_amount, uint256 input_reserve, uint256 output_reserve) public view returns (uint256) {
     require(input_reserve > 0 && output_reserve > 0, "INVALID_VALUE");
@@ -76,11 +76,11 @@ contract UniswapExchange is ERC20 {
   }
 
  /**
-   * @dev Pricing function for converting between ETH && Tokens.
-   * @param output_amount Amount of ETH or Tokens being bought.
-   * @param input_reserve Amount of ETH or Tokens (input type) in exchange reserves.
-   * @param output_reserve Amount of ETH or Tokens (output type) in exchange reserves.
-   * @return Amount of ETH or Tokens sold.
+   * @dev Pricing function for converting between TRX && Tokens.
+   * @param output_amount Amount of TRX or Tokens being bought.
+   * @param input_reserve Amount of TRX or Tokens (input type) in exchange reserves.
+   * @param output_reserve Amount of TRX or Tokens (output type) in exchange reserves.
+   * @return Amount of TRX or Tokens sold.
    */
   function getOutputPrice(uint256 output_amount, uint256 input_reserve, uint256 output_reserve) public view returns (uint256) {
     require(input_reserve > 0 && output_reserve > 0);
@@ -100,7 +100,7 @@ contract UniswapExchange is ERC20 {
   }
 
   /**
-   * @notice Convert ETH to Tokens.
+   * @notice Convert TRX to Tokens.
    * @dev User specifies exact input (msg.value) && minimum output.
    * @param min_tokens Minimum Tokens bought.
    * @param deadline Time after which this transaction can no longer be executed.
@@ -111,7 +111,7 @@ contract UniswapExchange is ERC20 {
   }
 
   /**
-   * @notice Convert ETH to Tokens && transfers Tokens to recipient.
+   * @notice Convert TRX to Tokens && transfers Tokens to recipient.
    * @dev User specifies exact input (msg.value) && minimum output
    * @param min_tokens Minimum Tokens bought.
    * @param deadline Time after which this transaction can no longer be executed.
@@ -138,23 +138,23 @@ contract UniswapExchange is ERC20 {
   }
 
   /**
-   * @notice Convert ETH to Tokens.
+   * @notice Convert TRX to Tokens.
    * @dev User specifies maximum input (msg.value) && exact output.
    * @param tokens_bought Amount of tokens bought.
    * @param deadline Time after which this transaction can no longer be executed.
-   * @return Amount of ETH sold.
+   * @return Amount of TRX sold.
    */
   function ethToTokenSwapOutput(uint256 tokens_bought, uint256 deadline) public payable returns(uint256) {
     return ethToTokenOutput(tokens_bought, msg.value, deadline, msg.sender, msg.sender);
   }
 
   /**
-   * @notice Convert ETH to Tokens && transfers Tokens to recipient.
+   * @notice Convert TRX to Tokens && transfers Tokens to recipient.
    * @dev User specifies maximum input (msg.value) && exact output.
    * @param tokens_bought Amount of tokens bought.
    * @param deadline Time after which this transaction can no longer be executed.
    * @param recipient The address that receives output Tokens.
-   * @return Amount of ETH sold.
+   * @return Amount of TRX sold.
    */
   function ethToTokenTransferOutput(uint256 tokens_bought, uint256 deadline, address recipient) public payable returns (uint256) {
     require(recipient != address(this) && recipient != address(0));
@@ -174,25 +174,25 @@ contract UniswapExchange is ERC20 {
   }
 
   /**
-   * @notice Convert Tokens to ETH.
+   * @notice Convert Tokens to TRX.
    * @dev User specifies exact input && minimum output.
    * @param tokens_sold Amount of Tokens sold.
-   * @param min_eth Minimum ETH purchased.
+   * @param min_eth Minimum TRX purchased.
    * @param deadline Time after which this transaction can no longer be executed.
-   * @return Amount of ETH bought.
+   * @return Amount of TRX bought.
    */
   function tokenToEthSwapInput(uint256 tokens_sold, uint256 min_eth, uint256 deadline) public returns (uint256) {
     return tokenToEthInput(tokens_sold, min_eth, deadline, msg.sender, msg.sender);
   }
 
   /**
-   * @notice Convert Tokens to ETH && transfers ETH to recipient.
+   * @notice Convert Tokens to TRX && transfers TRX to recipient.
    * @dev User specifies exact input && minimum output.
    * @param tokens_sold Amount of Tokens sold.
-   * @param min_eth Minimum ETH purchased.
+   * @param min_eth Minimum TRX purchased.
    * @param deadline Time after which this transaction can no longer be executed.
-   * @param recipient The address that receives output ETH.
-   * @return  Amount of ETH bought.
+   * @param recipient The address that receives output TRX.
+   * @return  Amount of TRX bought.
    */
   function tokenToEthTransferInput(uint256 tokens_sold, uint256 min_eth, uint256 deadline, address payable recipient) public returns (uint256) {
     require(recipient != address(this) && recipient != address(0));
@@ -213,9 +213,9 @@ contract UniswapExchange is ERC20 {
   }
 
   /**
-   * @notice Convert Tokens to ETH.
+   * @notice Convert Tokens to TRX.
    * @dev User specifies maximum input && exact output.
-   * @param eth_bought Amount of ETH purchased.
+   * @param eth_bought Amount of TRX purchased.
    * @param max_tokens Maximum Tokens sold.
    * @param deadline Time after which this transaction can no longer be executed.
    * @return Amount of Tokens sold.
@@ -225,12 +225,12 @@ contract UniswapExchange is ERC20 {
   }
 
   /**
-   * @notice Convert Tokens to ETH && transfers ETH to recipient.
+   * @notice Convert Tokens to TRX && transfers TRX to recipient.
    * @dev User specifies maximum input && exact output.
-   * @param eth_bought Amount of ETH purchased.
+   * @param eth_bought Amount of TRX purchased.
    * @param max_tokens Maximum Tokens sold.
    * @param deadline Time after which this transaction can no longer be executed.
-   * @param recipient The address that receives output ETH.
+   * @param recipient The address that receives output TRX.
    * @return Amount of Tokens sold.
    */
   function tokenToEthTransferOutput(uint256 eth_bought, uint256 max_tokens, uint256 deadline, address payable recipient) public returns (uint256) {
@@ -255,7 +255,7 @@ contract UniswapExchange is ERC20 {
     uint256 wei_bought = eth_bought;
     require(wei_bought >= min_eth_bought);
     require(token.transferFrom(buyer, address(this), tokens_sold));
-    uint256 tokens_bought = IUniswapExchange(exchange_addr).ethToTokenTransferInput.value(wei_bought)(min_tokens_bought, deadline, recipient);
+    uint256 tokens_bought = IJustSwapExchange(exchange_addr).ethToTokenTransferInput.value(wei_bought)(min_tokens_bought, deadline, recipient);
     emit EthPurchase(buyer, tokens_sold, wei_bought);
     return tokens_bought;
   }
@@ -265,7 +265,7 @@ contract UniswapExchange is ERC20 {
    * @dev User specifies exact input && minimum output.
    * @param tokens_sold Amount of Tokens sold.
    * @param min_tokens_bought Minimum Tokens (token_addr) purchased.
-   * @param min_eth_bought Minimum ETH purchased as intermediary.
+   * @param min_eth_bought Minimum TRX purchased as intermediary.
    * @param deadline Time after which this transaction can no longer be executed.
    * @param token_addr The address of the token being purchased.
    * @return Amount of Tokens (token_addr) bought.
@@ -288,9 +288,9 @@ contract UniswapExchange is ERC20 {
    * @dev User specifies exact input && minimum output.
    * @param tokens_sold Amount of Tokens sold.
    * @param min_tokens_bought Minimum Tokens (token_addr) purchased.
-   * @param min_eth_bought Minimum ETH purchased as intermediary.
+   * @param min_eth_bought Minimum TRX purchased as intermediary.
    * @param deadline Time after which this transaction can no longer be executed.
-   * @param recipient The address that receives output ETH.
+   * @param recipient The address that receives output TRX.
    * @param token_addr The address of the token being purchased.
    * @return Amount of Tokens (token_addr) bought.
    */
@@ -319,13 +319,13 @@ contract UniswapExchange is ERC20 {
   {
     require(deadline >= block.timestamp && (tokens_bought > 0 && max_eth_sold > 0));
     require(exchange_addr != address(this) && exchange_addr != address(0));
-    uint256 eth_bought = IUniswapExchange(exchange_addr).getEthToTokenOutputPrice(tokens_bought);
+    uint256 eth_bought = IJustSwapExchange(exchange_addr).getEthToTokenOutputPrice(tokens_bought);
     uint256 token_reserve = token.balanceOf(address(this));
     uint256 tokens_sold = getOutputPrice(eth_bought, token_reserve, address(this).balance);
     // tokens sold is always > 0
     require(max_tokens_sold >= tokens_sold && max_eth_sold >= eth_bought);
     require(token.transferFrom(buyer, address(this), tokens_sold));
-    uint256 eth_sold = IUniswapExchange(exchange_addr).ethToTokenTransferOutput.value(eth_bought)(tokens_bought, deadline, recipient);
+    uint256 eth_sold = IJustSwapExchange(exchange_addr).ethToTokenTransferOutput.value(eth_bought)(tokens_bought, deadline, recipient);
     emit EthPurchase(buyer, tokens_sold, eth_bought);
     return tokens_sold;
   }
@@ -544,15 +544,15 @@ contract UniswapExchange is ERC20 {
   |__________________________________*/
 
   /**
-   * @notice Deposit ETH && Tokens (token) at current ratio to mint UNI tokens.
-   * @dev min_liquidity does nothing when total UNI supply is 0.
-   * @param min_liquidity Minimum number of UNI sender will mint if total UNI supply is greater than 0.
-   * @param max_tokens Maximum number of tokens deposited. Deposits max amount if total UNI supply is 0.
+   * @notice Deposit ETH && Tokens (token) at current ratio to mint JSW tokens.
+   * @dev min_liquidity does nothing when total JSW supply is 0.
+   * @param min_liquidity Minimum number of JSW sender will mint if total JSW supply is greater than 0.
+   * @param max_tokens Maximum number of tokens deposited. Deposits max amount if total JSW supply is 0.
    * @param deadline Time after which this transaction can no longer be executed.
-   * @return The amount of UNI minted.
+   * @return The amount of JSW minted.
    */
   function addLiquidity(uint256 min_liquidity, uint256 max_tokens, uint256 deadline) public payable returns (uint256) {
-    require(deadline > block.timestamp && max_tokens > 0 && msg.value > 0, 'UniswapExchange#addLiquidity: INVALID_ARGUMENT');
+    require(deadline > block.timestamp && max_tokens > 0 && msg.value > 0, 'JustSwapExchange#addLiquidity: INVALID_ARGUMENT');
     uint256 total_liquidity = _totalSupply;
 
     if (total_liquidity > 0) {
@@ -585,12 +585,12 @@ contract UniswapExchange is ERC20 {
   }
 
   /**
-   * @dev Burn UNI tokens to withdraw ETH && Tokens at current ratio.
-   * @param amount Amount of UNI burned.
-   * @param min_eth Minimum ETH withdrawn.
+   * @dev Burn JSW tokens to withdraw TRX && Tokens at current ratio.
+   * @param amount Amount of JSW burned.
+   * @param min_eth Minimum TRX withdrawn.
    * @param min_tokens Minimum Tokens withdrawn.
    * @param deadline Time after which this transaction can no longer be executed.
-   * @return The amount of ETH && Tokens withdrawn.
+   * @return The amount of TRX && Tokens withdrawn.
    */
   function removeLiquidity(uint256 amount, uint256 min_eth, uint256 min_tokens, uint256 deadline) public returns (uint256, uint256) {
     require(amount > 0 && deadline > block.timestamp && min_eth > 0 && min_tokens > 0);

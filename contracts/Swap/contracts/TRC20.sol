@@ -3,7 +3,7 @@ import "./SafeMath.sol";
 
 
 /**
- * @title Standard ERC20 token
+ * @title Standard TRC20 token
  *
  * @dev Implementation of the basic standard token.
  * https://eips.ethereum.org/EIPS/eip-20
@@ -14,7 +14,7 @@ import "./SafeMath.sol";
  * all accounts just by listening to said events. Note that this isn't required by the specification, and other
  * compliant implementations may not do it.
  */
-contract ERC20 {
+contract TRC20 {
   using SafeMath for uint256;
 
   mapping (address => uint256) internal _balances;

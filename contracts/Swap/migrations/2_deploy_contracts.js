@@ -2,7 +2,7 @@
 const TronWeb = require("tronweb");
 const { SynthetixJs } = require("@oikos/oikos-js");
 
-const Factory = artifacts.require("./UniswapFactory.sol");
+const Factory = artifacts.require("./JustSwapFactory.sol");
 
 const createTronWeb = () => {
   const { HttpProvider } = TronWeb.providers;
