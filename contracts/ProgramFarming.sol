@@ -228,7 +228,7 @@ contract Ownable {
 // Have fun reading it. Hopefully it's bug-free. God bless.
 */
 contract TRC10Integrator {
-    trcToken public programID; // = 1000495;
+    trcToken internal programID;
 
     function _safeTRC10Transfer(address payable _to, uint256 _amount) internal {
         uint256 programBalance = address(this).tokenBalance(programID);
@@ -256,16 +256,29 @@ contract ProgramFarming is Ownable, TRC10Integrator {
     using SafeMath for uint256;
 
     struct UserInfo {
-        uint256 amount;     // How many TRX the user has provided.
-        uint256 rewardDebt; // Reward debt. See explanation below.
+        uint256 amount;     // How many GRM the user has provided in staking.
+        uint256 rewardDebt; // Reward debt
         uint256 depositTime; // Time to first deposit
+        //
+        // We do some fancy math here. Basically, any point in time, the amount of GRM
+        // entitled to a user but is pending to be distributed is:
+        //
+        //   pending reward = (user.amount * pool.accProgramPerShare) - user.rewardDebt
+        //
+        // Whenever a user deposits or withdraws  tokens to a pool. Here's what happens:
+        //   1. The pool's `accProgramPerShare` (and `lastRewardBlock`) gets updated.
+        //   2. User receives the pending reward sent to his/her address.
+        //   3. User's `amount` gets updated.
+        //   4. User's `rewardDebt` gets updated.
     }
+
+
 
     // The block number when Program farming starts.
     uint256[] public phases;
     uint256 public lastRewardBlock;
 
-    uint256 internal accProgramPerShare;  // Accumulated ProgramToken per share, times 1e11. See below.
+    uint256 internal accProgramPerShare;  // Accumulated ProgramToken per share, times 1e11
 
     // Bonus multiplier for early prg makers.
     uint256 internal constant BONUS_MULTIPLIER_1 = 20; // first 10,512,000 blocks - 2,0`Program in Block
@@ -273,9 +286,9 @@ contract ProgramFarming is Ownable, TRC10Integrator {
     uint256 internal constant BONUS_MULTIPLIER_3 = 5; //  next  10,512,000 blocks - 0,5 Program in BLock
     uint256 internal constant BONUS_MULTIPLIER_4 = 3; //  last  77,360,000 blocks - 0,3 Program in Block
 
-    uint256 public programPerBlock = 100000; // 0,1 PRGRM
+    uint256 public baseProgramPerBlock = 1e5; // 0,1 PRGRM
 
-    // Info of each user that stakes TRX.
+    // Info of each user that stakes GRM.
     mapping (address => UserInfo) public userInfo;
 
     uint256 public programSupply; // How much their ProgramTokens deposited users
@@ -284,8 +297,8 @@ contract ProgramFarming is Ownable, TRC10Integrator {
     event Withdraw(address indexed user, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 amount);
 
-    constructor(uint256 _startBlock, trcToken _programID) public {
-        programID = _programID;
+    constructor(uint256 _startBlock, uint256 _programID) public {
+        programID = trcToken(_programID);
         phases.push(_startBlock);// start 1 year
         phases.push(phases[0].add(10512000));// start 2 year
         phases.push(phases[1].add(10512000));// start 3 year
@@ -295,7 +308,7 @@ contract ProgramFarming is Ownable, TRC10Integrator {
 
 
     function setProgramPerBlock(uint256 _newAmount) public onlyOwner{
-        programPerBlock = _newAmount;
+        baseProgramPerBlock = _newAmount;
     }
 
 
@@ -325,12 +338,6 @@ contract ProgramFarming is Ownable, TRC10Integrator {
     }
 
 
-    // View current block reward in ProgramTokens
-    function getCurrentBlockReward() public view returns (uint256) {
-        return programPerBlock;
-    }
-
-
     // View function to see pending ProgramTokens on frontend.
     function pendingProgram(address _user) external view returns (uint256) {
         UserInfo storage user = userInfo[_user];
@@ -355,7 +362,7 @@ contract ProgramFarming is Ownable, TRC10Integrator {
               return;
         }
 
-        uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
+        uint256 multiplier = getMultiplier(lastRewardBlock, block.number); // 20 - 2,000,000
         uint256 programReward = multiplier.mul(1e5);
         accProgramPerShare = accProgramPerShare.add(programReward.mul(1e11).div(programSupply));
         lastRewardBlock = block.number;
@@ -363,34 +370,35 @@ contract ProgramFarming is Ownable, TRC10Integrator {
 
 
     // Deposit Program
-    function deposit() public {
+    function deposit() external payable {
         require(msg.tokenid == getTokenID(), "ProgramFarming: invalid ProgramToken ID");
         uint256 _amount = msg.tokenvalue;
+        programSupply = programSupply.add(_amount);
         UserInfo storage user = userInfo[msg.sender];
         updatePool();
         if (user.amount ==  0) {
             user.depositTime = block.timestamp;
         }
         user.amount = user.amount.add(_amount);
-        user.rewardDebt = user.amount.mul(accProgramPerShare).div(1e11);
-        programSupply = programSupply.add(_amount);
+        user.rewardDebt = user.amount.mul(accProgramPerShare).div(1e11); // тут сразу 0 выходит
         emit Deposit(msg.sender, _amount);
     }
 
 
-    // Withdraw TRX from Interstellar.
+    // Withdraw GRM from Interstellar.
     function withdraw(uint256 _amount) public {
         UserInfo storage user = userInfo[msg.sender];
-        require(user.depositTime.add(5 days) < now, "ProgramFarming: Less 5 days");
         require(user.amount >= _amount, "ProgramFarming: amount not good");
+        require(user.depositTime.add(5 days) < now, "ProgramFarming: Less 5 days");
 
         updatePool();
         uint256 pending = user.amount.mul(accProgramPerShare).div(1e11).sub(user.rewardDebt);
         _safeProgramTransfer(msg.sender, pending);
         user.amount = user.amount.sub(_amount);
         user.rewardDebt = user.amount.mul(accProgramPerShare).div(1e11);
-        _safeProgramTransfer(msg.sender, _amount);
         programSupply = programSupply.sub(_amount);
+
+        _safeProgramTransfer(msg.sender, _amount);
         emit Withdraw(msg.sender, _amount);
     }
 
@@ -399,10 +407,11 @@ contract ProgramFarming is Ownable, TRC10Integrator {
     function emergencyWithdraw() public {
         UserInfo storage user = userInfo[msg.sender];
         _safeProgramTransfer(msg.sender, user.amount);
+        programSupply = programSupply.sub(user.amount);
+
         emit EmergencyWithdraw(msg.sender, user.amount);
         user.amount = 0;
         user.rewardDebt = 0;
-        programSupply = programSupply.sub(user.amount);
     }
 
 
