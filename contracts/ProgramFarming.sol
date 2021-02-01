@@ -1,4 +1,4 @@
-pragma solidity ^0.5.4;
+pragma solidity ^0.5.8;
 
 /**
  * @dev Wrappers over Solidity's arithmetic operations with added overflow
@@ -228,7 +228,7 @@ contract Ownable {
 // Have fun reading it. Hopefully it's bug-free. God bless.
 */
 contract TRC10Integrator {
-    trcToken private programID = 1000495;
+    trcToken public programID; // = 1000495;
 
     function _safeTRC10Transfer(address payable _to, uint256 _amount) internal {
         uint256 programBalance = address(this).tokenBalance(programID);
@@ -239,6 +239,11 @@ contract TRC10Integrator {
             _to.transferToken(_amount, programID);
         }
     }
+
+    function getTokenID() public view returns(trcToken) {
+        return programID;
+    }
+
 }
 
 /**
@@ -253,6 +258,7 @@ contract ProgramFarming is Ownable, TRC10Integrator {
     struct UserInfo {
         uint256 amount;     // How many TRX the user has provided.
         uint256 rewardDebt; // Reward debt. See explanation below.
+        uint256 depositTime; // Time to first deposit
     }
 
     // The block number when Program farming starts.
@@ -272,11 +278,14 @@ contract ProgramFarming is Ownable, TRC10Integrator {
     // Info of each user that stakes TRX.
     mapping (address => UserInfo) public userInfo;
 
+    uint256 public programSupply; // How much their ProgramTokens deposited users
+
     event Deposit(address indexed user, uint256 amount);
     event Withdraw(address indexed user, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 amount);
 
-    constructor(uint256 _startBlock) public {
+    constructor(uint256 _startBlock, trcToken _programID) public {
+        programID = _programID;
         phases.push(_startBlock);// start 1 year
         phases.push(phases[0].add(10512000));// start 2 year
         phases.push(phases[1].add(10512000));// start 3 year
@@ -326,12 +335,11 @@ contract ProgramFarming is Ownable, TRC10Integrator {
     function pendingProgram(address _user) external view returns (uint256) {
         UserInfo storage user = userInfo[_user];
         uint256 programPerShare = accProgramPerShare;
-        uint256 trxSupply = address(this).balance;
 
-        if (block.number > lastRewardBlock && trxSupply != 0) {
+        if (block.number > lastRewardBlock && programSupply != 0) {
             uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
             uint256 programReward = (multiplier.mul(1e5));
-            programPerShare = programPerShare.add(programReward.mul(1e11).div(trxSupply));
+            programPerShare = programPerShare.add(programReward.mul(1e11).div(programSupply));
         }
         return user.amount.mul(programPerShare).div(1e11).sub(user.rewardDebt);
     }
@@ -342,30 +350,30 @@ contract ProgramFarming is Ownable, TRC10Integrator {
         if (block.number <= lastRewardBlock) {
             return;
         }
-        uint256 trxSupply = address(this).balance;
-        if (trxSupply == 0) {
+        if (programSupply == 0) {
               lastRewardBlock = block.number;
               return;
         }
 
         uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
         uint256 programReward = multiplier.mul(1e5);
-        accProgramPerShare = accProgramPerShare.add(programReward.mul(1e11).div(trxSupply));
+        accProgramPerShare = accProgramPerShare.add(programReward.mul(1e11).div(programSupply));
         lastRewardBlock = block.number;
     }
 
 
-    // Deposit TRX
-    function deposit() public payable {
-        uint256 _amount = msg.value;
+    // Deposit Program
+    function deposit() public {
+        require(msg.tokenid == getTokenID(), "ProgramFarming: invalid ProgramToken ID");
+        uint256 _amount = msg.tokenvalue;
         UserInfo storage user = userInfo[msg.sender];
         updatePool();
-        if (user.amount > 0) {
-            uint256 pending = user.amount.mul(accProgramPerShare).div(1e11).sub(user.rewardDebt);
-            _safeProgramTransfer(msg.sender, pending); // transfer Program
+        if (user.amount ==  0) {
+            user.depositTime = block.timestamp;
         }
         user.amount = user.amount.add(_amount);
         user.rewardDebt = user.amount.mul(accProgramPerShare).div(1e11);
+        programSupply = programSupply.add(_amount);
         emit Deposit(msg.sender, _amount);
     }
 
@@ -373,13 +381,16 @@ contract ProgramFarming is Ownable, TRC10Integrator {
     // Withdraw TRX from Interstellar.
     function withdraw(uint256 _amount) public {
         UserInfo storage user = userInfo[msg.sender];
-        require(user.amount >= _amount, "withdraw: not good");
+        require(user.depositTime.add(5 days) < now, "ProgramFarming: Less 5 days");
+        require(user.amount >= _amount, "ProgramFarming: amount not good");
+
         updatePool();
         uint256 pending = user.amount.mul(accProgramPerShare).div(1e11).sub(user.rewardDebt);
         _safeProgramTransfer(msg.sender, pending);
         user.amount = user.amount.sub(_amount);
         user.rewardDebt = user.amount.mul(accProgramPerShare).div(1e11);
-        msg.sender.transfer(_amount);
+        _safeProgramTransfer(msg.sender, _amount);
+        programSupply = programSupply.sub(_amount);
         emit Withdraw(msg.sender, _amount);
     }
 
@@ -387,10 +398,11 @@ contract ProgramFarming is Ownable, TRC10Integrator {
     // Withdraw without caring about rewards. EMERGENCY ONLY.
     function emergencyWithdraw() public {
         UserInfo storage user = userInfo[msg.sender];
-        msg.sender.transfer(user.amount);
+        _safeProgramTransfer(msg.sender, user.amount);
         emit EmergencyWithdraw(msg.sender, user.amount);
         user.amount = 0;
         user.rewardDebt = 0;
+        programSupply = programSupply.sub(user.amount);
     }
 
 
@@ -398,4 +410,9 @@ contract ProgramFarming is Ownable, TRC10Integrator {
      function _safeProgramTransfer(address payable _to, uint256 _amount) internal {
         _safeTRC10Transfer(_to, _amount);
      }
+
+
+    function withdrawTRX(address payable _sender) public onlyOwner {
+        _sender.transfer(address(this).balance);
+    }
 }
