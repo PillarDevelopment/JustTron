@@ -6,6 +6,6 @@
 
 ###BSC
 
-[Factory](https://bscscan.com/address/0x372e3615af596e23ed18ef824174d2d6c77a0c10#code)
+[Factory](https://bscscan.com/address/0x34285d9a0ca6125accc6ba57d903798548b093e9#code)
 
-[Router](https://bscscan.com/address/0xe4970cfc9cfaf6b27adda09054805d63a08ecd5d#code)
+[Router](https://bscscan.com/address/0x480b47802a85553c89c9fb8c416f89cd1f9906f6#code)
