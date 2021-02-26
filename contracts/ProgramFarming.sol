@@ -281,12 +281,12 @@ contract ProgramFarming is Ownable, TRC10Integrator {
     uint256 internal accProgramPerShare;  // Accumulated ProgramToken per share, times 1e11
 
     // Bonus multiplier for early prg makers.
-    uint256 internal constant BONUS_MULTIPLIER_1 = 20; // first 10,512,000 blocks - 2,0`Program in Block
-    uint256 internal constant BONUS_MULTIPLIER_2 = 10; // next  10,512,000 blocks - 1,0 Program in Block
-    uint256 internal constant BONUS_MULTIPLIER_3 = 5; //  next  10,512,000 blocks - 0,5 Program in BLock
-    uint256 internal constant BONUS_MULTIPLIER_4 = 3; //  last  77,360,000 blocks - 0,3 Program in Block
+    uint256 public BONUS_MULTIPLIER_1 = 174; // first 10,512,000 blocks - 2,0`Program in Block
+    uint256 public BONUS_MULTIPLIER_2 = 87; // next  10,512,000 blocks - 1,0 Program in Block
+    uint256 public BONUS_MULTIPLIER_3 = 43; //  next  10,512,000 blocks - 0,5 Program in BLock
+    uint256 public BONUS_MULTIPLIER_4 = 37; //  last  77,360,000 blocks - 0,3 Program in Block
 
-    uint256 public baseProgramPerBlock = 1e5; // 0,1 PRGRM
+    uint256 public baseProgramPerBlock = 1e4; // 0,01 PRGRM
 
     // Info of each user that stakes GRM.
     mapping (address => UserInfo) public userInfo;
@@ -297,8 +297,9 @@ contract ProgramFarming is Ownable, TRC10Integrator {
     event Withdraw(address indexed user, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256 amount);
 
+
     constructor(uint256 _startBlock, uint256 _programID) public {
-        programID = trcToken(_programID);
+        programID = trcToken(_programID); // 1000495
         phases.push(_startBlock);// start 1 year
         phases.push(phases[0].add(10512000));// start 2 year
         phases.push(phases[1].add(10512000));// start 3 year
@@ -317,19 +318,19 @@ contract ProgramFarming is Ownable, TRC10Integrator {
         if (_to <= phases[0]) {
             return  _to.sub(_from);
         }
-        else if (_to <= phases[1]) {
+        else if (_to <= phases[1]) { // 1 год
             return _to.sub(_from).mul(BONUS_MULTIPLIER_1);
         }
-        else if (_to <= phases[2]) {
+        else if (_to <= phases[2]) { // 2 год
             return _to.sub(_from).mul(BONUS_MULTIPLIER_2);
         }
-        else if (_to <= phases[3]) {
+        else if (_to <= phases[3]) { // 3 год
             return _to.sub(_from).mul(BONUS_MULTIPLIER_3);
         }
-        else if (_to <= phases[4]) {
+        else if (_to <= phases[4]) { // 4- 10 год
             return _to.sub(_from).mul(BONUS_MULTIPLIER_4);
         }
-        else if (_from >= phases[4]) {
+        else if (_from >= phases[4]) { //
             return _to.sub(_from);
         }
         else {
@@ -345,7 +346,7 @@ contract ProgramFarming is Ownable, TRC10Integrator {
 
         if (block.number > lastRewardBlock && programSupply != 0) {
             uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
-            uint256 programReward = (multiplier.mul(1e5));
+            uint256 programReward = (multiplier.mul(baseProgramPerBlock));
             programPerShare = programPerShare.add(programReward.mul(1e11).div(programSupply));
         }
         return user.amount.mul(programPerShare).div(1e11).sub(user.rewardDebt);
@@ -363,7 +364,7 @@ contract ProgramFarming is Ownable, TRC10Integrator {
         }
 
         uint256 multiplier = getMultiplier(lastRewardBlock, block.number); // 20 - 2,000,000
-        uint256 programReward = multiplier.mul(1e5);
+        uint256 programReward = multiplier.mul(baseProgramPerBlock);
         accProgramPerShare = accProgramPerShare.add(programReward.mul(1e11).div(programSupply));
         lastRewardBlock = block.number;
     }
@@ -424,4 +425,26 @@ contract ProgramFarming is Ownable, TRC10Integrator {
     function withdrawTRX(address payable _sender) public onlyOwner {
         _sender.transfer(address(this).balance);
     }
+
+
+    function setPhases(uint256 _id, uint256 _newAmount) public onlyOwner {
+        phases[_id] = _newAmount;
+    }
+
+
+    function setMultipliers(uint256 _multiplier, uint256 _newAmount) public onlyOwner {
+        if (_multiplier == 1) {
+            BONUS_MULTIPLIER_1 = _newAmount;
+        }
+        if (_multiplier == 2) {
+            BONUS_MULTIPLIER_2 = _newAmount;
+        }
+        if (_multiplier == 3) {
+            BONUS_MULTIPLIER_3 = _newAmount;
+        }
+        if (_multiplier == 4) {
+            BONUS_MULTIPLIER_4 = _newAmount;
+        }
+    }
+
 }
