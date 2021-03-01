@@ -18,6 +18,6 @@
 ##MainNet
 
 [Just Tron](https://tronscan.org/#/contract/TTBYJiFWvSrFDXaZijK7scgVKFR1THnKXk)
-
+[GRM Farming](https://tronscan.io/#/contract/TN48qZwAiVwH6TpV2H7tf2zswSS1DCsjc6/code)
 []()
 

@@ -299,12 +299,12 @@ contract ProgramFarming is Ownable, TRC10Integrator {
 
 
     constructor(uint256 _startBlock, uint256 _programID) public {
-        programID = trcToken(_programID); // 1000495
-        phases.push(_startBlock);// start 1 year
-        phases.push(phases[0].add(10512000));// start 2 year
-        phases.push(phases[1].add(10512000));// start 3 year
-        phases.push(phases[2].add(10512000)); // start 4 year
-        phases.push(phases[3].add(77360000));// end 10 year
+        programID = trcToken(_programID);
+        phases.push(_startBlock);
+        phases.push(phases[0].add(10512000));
+        phases.push(phases[1].add(10512000));
+        phases.push(phases[2].add(10512000));
+        phases.push(phases[3].add(77360000));
     }
 
 
@@ -318,19 +318,19 @@ contract ProgramFarming is Ownable, TRC10Integrator {
         if (_to <= phases[0]) {
             return  _to.sub(_from);
         }
-        else if (_to <= phases[1]) { // 1 год
+        else if (_to <= phases[1]) {
             return _to.sub(_from).mul(BONUS_MULTIPLIER_1);
         }
-        else if (_to <= phases[2]) { // 2 год
+        else if (_to <= phases[2]) {
             return _to.sub(_from).mul(BONUS_MULTIPLIER_2);
         }
-        else if (_to <= phases[3]) { // 3 год
+        else if (_to <= phases[3]) {
             return _to.sub(_from).mul(BONUS_MULTIPLIER_3);
         }
-        else if (_to <= phases[4]) { // 4- 10 год
+        else if (_to <= phases[4]) {
             return _to.sub(_from).mul(BONUS_MULTIPLIER_4);
         }
-        else if (_from >= phases[4]) { //
+        else if (_from >= phases[4]) {
             return _to.sub(_from);
         }
         else {
@@ -363,7 +363,7 @@ contract ProgramFarming is Ownable, TRC10Integrator {
               return;
         }
 
-        uint256 multiplier = getMultiplier(lastRewardBlock, block.number); // 20 - 2,000,000
+        uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
         uint256 programReward = multiplier.mul(baseProgramPerBlock);
         accProgramPerShare = accProgramPerShare.add(programReward.mul(1e11).div(programSupply));
         lastRewardBlock = block.number;
@@ -381,7 +381,7 @@ contract ProgramFarming is Ownable, TRC10Integrator {
             user.depositTime = block.timestamp;
         }
         user.amount = user.amount.add(_amount);
-        user.rewardDebt = user.amount.mul(accProgramPerShare).div(1e11); // тут сразу 0 выходит
+        user.rewardDebt = user.amount.mul(accProgramPerShare).div(1e11);  
         emit Deposit(msg.sender, _amount);
     }
 
